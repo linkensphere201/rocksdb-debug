@@ -5,11 +5,43 @@
 //
 #ifndef ROCKSDB_LITE
 
+#include <sstream>
 #include "rocksdb/ldb_tool.h"
+
+class MySliceFormater final : public rocksdb::SliceFormatter {
+    public:
+        MySliceFormater() = default;
+        virtual std::string Format(const rocksdb::Slice& s) const override;
+};
+
+std::string
+MySliceFormater::Format(const rocksdb::Slice &s) const {
+    std::stringstream ss;
+    for (decltype(s.size_) i = 0; i < s.size_; i++) {
+        if (::isprint(s.data_[i]) == 0) {
+            ss << "\\x" << int(s.data_[i]);
+        } else {
+            ss << s.data_[i];
+        }
+    }
+    ss << " | ";
+    for (decltype(s.size_) i = 0; i < s.size_; i++) {
+        char buf[10];
+        sprintf(buf, "%2d ", int(s.data_[i]));
+        ss << buf;
+    }
+    return ss.str();
+}
 
 int main(int argc, char** argv) {
   rocksdb::LDBTool tool;
-  tool.Run(argc, argv);
+  rocksdb::LDBOptions lopt;
+
+  lopt.key_formatter = std::make_shared<MySliceFormater>();
+  lopt.val_formatter = std::make_shared<MySliceFormater>();
+  lopt.print_help_header = "ldb ywj modified";
+
+  tool.Run(argc, argv, rocksdb::Options(), lopt);
   return 0;
 }
 #else

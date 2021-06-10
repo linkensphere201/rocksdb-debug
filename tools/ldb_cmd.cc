@@ -2501,6 +2501,11 @@ void ScanCommand::DoCommand() {
     } else {
       Slice val_slice = it->value();
       std::string formatted_value;
+      if (ldb_options_.val_formatter) {
+        formatted_value = ldb_options_.val_formatter->Format(val_slice);
+        val_slice = formatted_value;
+      }
+
       if (is_value_hex_) {
         formatted_value = "0x" + val_slice.ToString(true /* hex */);
         val_slice = formatted_value;
